@@ -115,7 +115,7 @@ function parseBody(req) {
     if (detectTitle.promise.isPending()) {
       detectTitle.reject(message);
     }
-  }, 8 * 1000);
+  }, 30 * 1000);
 
   let busboy = new Busboy({ headers: req.headers });
   busboy.on('file', (fieldname, fileReadableStream, filename, encoding, mimetype) => {
