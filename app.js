@@ -17,7 +17,7 @@ const oauth = Youtube.authenticate({
   type: 'oauth',
   client_id: process.env.YOUTUBE_TESTAPP_OAUTH_CLIENT_ID,
   client_secret: process.env.YOUTUBE_TESTAPP_OAUTH_CLIENT_SECRET,
-  redirect_url: process.env.YOUTUBE_TESTAPP_ORIGIN + '/oauth2callback'
+  redirect_url: process.env.YOUTUBE_TESTAPP_OAUTH_REDIRECT_URL
 });
 
 
