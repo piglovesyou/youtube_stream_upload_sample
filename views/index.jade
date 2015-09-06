@@ -1,0 +1,20 @@
+extends layout
+
+block content
+  h1= title
+  if msg && msg != '' 
+    p.msg #{msg}
+  p Welcome to #{title}
+  if (isAuthed)
+    form(method="post", action="/upload", enctype="multipart/form-data")
+      div
+        label(for="ttt") title
+        input#ttt(type="text" name="nice_title" value="eeeeeeeeeeeeeeeeeeeee")
+      div
+        label(for="fff") attachment
+        input#fff(type="file" name="nice_attachment")
+      div
+        input(type="submit", value="booom!")
+    a(href="/logout") logout
+  else
+    a(href="/authenticate") authenticate
