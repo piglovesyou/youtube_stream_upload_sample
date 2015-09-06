@@ -93,9 +93,10 @@ app.post('/upload', (req, res) => {
     req.flash('movieId', result.id);
     res.redirect('/');
   })
-  .catch(err => {
-    console.error(err.stack);
-    req.flash('error-message', err.stack);
+  .catch(reason => {
+    console.error(reason.stack ? reason.stack : reason);
+    req.flash('error-message', reason.stack ? reason.stack : reason);
+    res.set({Connection: 'close'});
     res.redirect('/');
   });
 
@@ -107,9 +108,14 @@ function parseBody(req) {
 
   // Set waiting limit
   setTimeout(()=> {
-    detectAttachment.reject('uploading from client timed out');
-    detectTitle.reject('uploading from client timed out');
-  }, 60 * 1000);
+    let message = 'uploading from client timed out';
+    if (detectAttachment.promise.isPending()) {
+      detectAttachment.reject(message);
+    }
+    if (detectTitle.promise.isPending()) {
+      detectTitle.reject(message);
+    }
+  }, 8 * 1000);
 
   let busboy = new Busboy({ headers: req.headers });
   busboy.on('file', (fieldname, fileReadableStream, filename, encoding, mimetype) => {
