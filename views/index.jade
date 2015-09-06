@@ -2,19 +2,30 @@ extends layout
 
 block content
   h1= title
-  if msg && msg != '' 
-    p.msg #{msg}
-  p Welcome to #{title}
+
+  if errorMessage != '' 
+    pre.message.message--error #{errorMessage}
+  if message != '' 
+    pre.message.message--success
+      if movieId != ''
+        a(href='http://youtu.be/' + movieId) #{movieId}
+      | #{message}
+
+  p This web page is just for testing use.
   if (isAuthed)
-    form(method="post", action="/upload", enctype="multipart/form-data")
-      div
+    form.form(method="post", action="/upload", enctype="multipart/form-data")
+      div.form__field
         label(for="ttt") title
-        input#ttt(type="text" name="nice_title" value="eeeeeeeeeeeeeeeeeeeee")
-      div
-        label(for="fff") attachment
+        input#ttt(type="text" name="nice_title" value="default title...")
+      div.form__field
+        label(for="fff") file like mp4
         input#fff(type="file" name="nice_attachment")
-      div
-        input(type="submit", value="booom!")
-    a(href="/logout") logout
+      div.form__field.center
+        input(type="submit", value="Start Upload")
+    div.center
+      a(href="https://www.youtube.com/my_videos") https://www.youtube.com/my_videos
+      span.separator
+        | |
+      a(href="/logout") logout
   else
-    a(href="/authenticate") authenticate
+    a(href="/authenticate") First please authenticate.

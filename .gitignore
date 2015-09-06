@@ -31,6 +31,6 @@ npm-debug.log
 
 *.un~
 /sessions
-file.txt
-out.txt
-video.mp4
+*.txt
+*.mp4
+test.js

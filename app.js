@@ -1,191 +1,151 @@
 const express = require('express');
-const path = require('path');
-const favicon = require('serve-favicon');
-const cookieParser = require('cookie-parser');
-const bodyParser = require('body-parser');
+const Path = require('path');
 const connectFlash = require('connect-flash');
-const FS = require('fs');
 const Q = require('q');
-Q.longStackSupport = true;
 const Busboy = require('busboy');
 const stream = require('stream');
-const Youtube = require("youtube-api");
+const Youtube = require('youtube-api');
+const Session = require('express-session');
+const FileStore = require('session-file-store')(Session);
 
 
+
+Q.longStackSupport = true;
 const app = express();
+const fileStore = new FileStore();
 const oauth = Youtube.authenticate({
-  type: "oauth",
-  client_id: process.env.YOUTUBE_OAUTH_CLIENT_ID,
-  client_secret: process.env.YOUTUBE_OAUTH_CLIENT_SECRET,
-  redirect_url: 'http://localhost:3000/oauth2callback'
-}); 
+  type: 'oauth',
+  client_id: process.env.YOUTUBE_TESTAPP_OAUTH_CLIENT_ID,
+  client_secret: process.env.YOUTUBE_TESTAPP_OAUTH_CLIENT_SECRET,
+  redirect_url: process.env.YOUTUBE_TESTAPP_ORIGIN + '/oauth2callback'
+});
 
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
+
+app.set('views', Path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
-const session = require('express-session');
-const FileStore = require('session-file-store')(session);
-const fileStore = new FileStore({});
-
-
-app.use(session({
+app.use(Session({
   store: fileStore,
   resave: 'boom',
   saveUninitialized: 'baa',
   secret: 'keyboard cat'
 }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(Path.join(__dirname, 'public')));
 app.use(connectFlash());
 
-app.get('/', function(req, res, next) {
+
+
+app.get('/', (req, res, next) => {
   res.render('index', {
-    title: 'Test File Uploading',
+    title: 'Piglovesyou File Uploading Test',
     isAuthed: !!req.session.auth_token,
-    msg: req.flash('msg') || null
+    message: req.flash('message') || null,
+    errorMessage: req.flash('error-message') || null,
+    movieId: req.flash('movieId') || null,
   });
 });
 
-app.get('/authenticate', function(req, res) {
+app.get('/authenticate', (req, res) => {
   res.redirect(oauth.generateAuthUrl({
-    access_type: "offline", scope: ["https://www.googleapis.com/auth/youtube.upload"]
+    access_type: 'offline', scope: ['https://www.googleapis.com/auth/youtube.upload']
   }));
 });
 
-app.get('/logout', function(req, res) {
-  console.log(fileStore.destroy)
-  fileStore.destroy(req.sessionID, function(err) {
+app.get('/logout', (req, res) => {
+  fileStore.destroy(req.sessionID, (err) => {
     if (err) {
-      res.send("logout failed");
+      res.send('logout failed');
     }
     req.session.auth_token = null;
     res.redirect('/');
   });
 });
 
-app.get("/oauth2callback", function (req, res) {
+app.get('/oauth2callback', function (req, res) {
   Q.ninvoke(oauth, 'getToken', req.query.code)
   .then(([tokens]) => {
     req.session.auth_token = tokens;
     var hour = 60 * 60 * 1000;
     req.session.cookie.expires = new Date(Date.now + hour);
     req.session.cookie.maxAge = hour;
+    req.flash('message', 'Authenticated.');
     res.redirect('/');
   })
 });
 
-app.post('/upload', function(req, res) {
+app.post('/upload', (req, res) => {
   if (!req.session.auth_token) {
-    res.redirect('/');
+    req.flash('First authenticate.')
+    return res.redirect('/');
   }
 
   // Suppose there are only two fields in a form:
-  // - nice_title
-  // - nice_attachment
-  // If more, we cannot handle it correctly.
+  // - "nice_title" of text
+  // - "nice_attachment" of file
+  // If more, we have to write code little more.
 
-  let deferredFileStream = Q.defer();
-  let deferredField = Q.defer();
-  let busboy = new Busboy({ headers: req.headers });
-
-  busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
-    console.log('file detected')
-    deferredFileStream.resolve(file);
-    // let saveTo = path.join(os.tmpDir(), path.basename(fieldname));
-    // file.pipe(fs.createWriteStream(saveTo));
-  });
-  busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated) {
-    console.log('======')
-    console.log(val)
-    deferredField.resolve(val);
-  });
-  busboy.on('finish', function() {
-    console.log('Uploading from client-side has done');
-    // res.writeHead(200, { 'Connection': 'close' });
-    // res.end("That's all folks!");
-  });
-  req.pipe(busboy);
-
-  Q.all([deferredFileStream.promise, deferredField.promise])
+  parseBody(req)
   .then(([fileStream, title]) => {
-    console.log('lengtu', title)
-    oauth.setCredentials(req.session.auth_token);
-    return uploadToYoutube(fileStream, title);
+    return uploadToYoutube(req.session.auth_token, fileStream, title);
   })
-  .then(result => {
-    req.flash('msg', 'upload succeeded!');
+  .then(([result]) => {
+    req.flash('message', 'uploading succeeded!');
+    req.flash('movieId', result.id);
     res.redirect('/');
   })
   .catch(err => {
-    console.log(err.stack);
-    res.status(500).send('booom..');
+    console.error(err.stack);
+    req.flash('error-message', err.stack);
+    res.redirect('/');
   });
 
-
-  // Q().then(() => {
-  //   oauth.setCredentials(req.session.auth_token = tokens);
-  //   Youtube.videos.insert({
-  //     resource: {
-  //       snippet: {
-  //         title: "Testing YoutTube API NodeJS module",
-  //         description: "Test video upload via YouTube API"
-  //       },
-  //       status: {
-  //         privacyStatus: "private"
-  //       }
-  //     },
-  //     part: "snippet,status",
-  //     media: {
-  //       body: FS.createReadStream("video.mp4")
-  //     }
-  //   }, function (err, data) {
-  //     if (err) {
-  //       return res.status(400).send(err.stack);
-  //     }
-  //     res.json(data);
-  //   });
-  //   oauth.credentials = null;
-  // })
-  // .catch(err => {
-  //   console.error(err.stack)
-  //   res.send(err.stack);
-  // })
 });
 
-function uploadToYoutube(fileStream, title) {
+function parseBody(req) {
+  let detectAttachment = Q.defer();
+  let detectTitle = Q.defer();
+
+  // Set waiting limit
+  setTimeout(()=> {
+    detectAttachment.reject('uploading from client timed out');
+    detectTitle.reject('uploading from client timed out');
+  }, 60 * 1000);
+
+  let busboy = new Busboy({ headers: req.headers });
+  busboy.on('file', (fieldname, fileReadableStream, filename, encoding, mimetype) => {
+    detectAttachment.resolve(fileReadableStream);
+  });
+  busboy.on('field', (fieldname, val, fieldnameTruncated, valTruncated) => {
+    detectTitle.resolve(val);
+  });
+  req.pipe(busboy);
+
+  return Q.all([detectAttachment.promise, detectTitle.promise]);
+}
+
+function uploadToYoutube(authToken, readableStream, title) {
+  oauth.setCredentials(authToken);
   return Q.ninvoke(Youtube.videos, 'insert', {
     resource: {
       snippet: {
         title: title,
-        description: "Test video upload via YouTube API"
+        description: 'Test video upload via YouTube API'
       },
       status: {
-        privacyStatus: "private"
+        privacyStatus: 'private'
       }
     },
-    part: "snippet,status",
+    part: 'snippet,status',
     media: {
-      body: fileStream
+      body: readableStream
     }
   })
 }
 
 
 
-
-function errRes(res) {
-  return function(err) {
-    res.status(400).send(err);
-  }
-}
-
-
-
-
-
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use((req, res, next) => {
   var err = new Error('Not Found');
   err.status = 404;
   next(err);
@@ -196,7 +156,7 @@ app.use(function(req, res, next) {
 // development error handler
 // will print stacktrace
 if (app.get('env') === 'development') {
-  app.use(function(err, req, res, next) {
+  app.use((err, req, res, next) => {
     res.status(err.status || 500);
     res.render('error', {
       message: err.message,
@@ -207,13 +167,12 @@ if (app.get('env') === 'development') {
 
 // production error handler
 // no stacktraces leaked to user
-app.use(function(err, req, res, next) {
+app.use((err, req, res, next) => {
   res.status(err.status || 500);
   res.render('error', {
     message: err.message,
     error: {}
   });
 });
-
 
 module.exports = app;
