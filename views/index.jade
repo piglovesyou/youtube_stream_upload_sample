@@ -2,30 +2,36 @@ extends layout
 
 block content
   h1= title
+  section
+    p This web page is just for testing use.
 
-  if errorMessage != '' 
-    pre.message.message--error #{errorMessage}
-  if message != '' 
-    pre.message.message--success
-      if movieId != ''
-        a(href='http://youtu.be/' + movieId) #{movieId}
-      | #{message}
+  if errorMessage != '' || message != ''
+    section
+    if errorMessage != ''
+      pre.message.message--error #{errorMessage}
+    if message != ''
+      pre.message.message--success
+        if movieId != ''
+          a(href='http://youtu.be/' + movieId) #{movieId}
+        | #{message}
 
-  p This web page is just for testing use.
-  if (isAuthed)
-    form.form(method="post", action="/upload", enctype="multipart/form-data")
-      div.form__field
-        label(for="ttt") title
-        input#ttt(type="text" name="nice_title" value="default title...")
-      div.form__field
-        label(for="fff") file like mp4
-        input#fff(type="file" name="nice_attachment")
-      div.form__field.center
-        input(type="submit", value="Start Upload")
-    div.center
-      a(href="https://www.youtube.com/my_videos") https://www.youtube.com/my_videos
+  section
+    if (isAuthed)
+      form.form(method="post", action="/upload", enctype="multipart/form-data")
+        div.form__field
+          label(for="ttt") title
+          input#ttt(type="text" name="nice_title" value="default title...")
+        div.form__field
+          label(for="fff") movie
+          input#fff(type="file" name="nice_attachment")
+        div.form__field.center
+          input(type="submit", value="Start Upload")
+    else
+      a(href="/authenticate") First please authenticate.
+
+  section.center
+    a(href="https://www.youtube.com/my_videos") Your all videos↗
+    if (isAuthed)
       span.separator
         | |
       a(href="/logout") logout
-  else
-    a(href="/authenticate") First please authenticate.

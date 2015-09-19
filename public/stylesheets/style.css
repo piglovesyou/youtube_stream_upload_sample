@@ -1,10 +1,19 @@
 body {
-  padding: 32px 64px;
+  padding: 16px 32px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
 }
-
+section {
+  margin-bottom: 32px;
+}
 a {
   color: #00B7FF;
+}
+
+.center {
+  text-align: center;
+}
+.separator {
+  margin: 0 8px;
 }
 
 .message {
@@ -26,22 +35,26 @@ a {
   margin-bottom: 16px;
 }
 .form__field {
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 400px;
+  display: flex;
+  margin: 16px;
 }
 .form__field label {
-  display: inline-block;
-  width: 6rem;
-  padding: 16px;
+  width: 30%;
+  padding-right: 16px;
   text-align: right;
-}
-.center {
-  text-align: center;
-}
-.separator {
-  margin: 0 8px;
+  font-style: italic;
 }
 .form__field input[type="submit"] {
-  padding: 8px 20%;
+  margin-left: auto;
+  margin-right: auto;
 }
+
+@media all and (min-width: 480px) {
+  body {
+    padding: 32px 64px;
+  }
+  .form__field {
+    display: flex;
+  }
+}
+
